@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trình chiếu Chia Đa Thức</title>
+    <!-- Tích hợp Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tích hợp React và ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Tích hợp Babel để biên dịch JSX trực tiếp trên trình duyệt -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        /* Ẩn thanh cuộn cho các container nhưng vẫn cho phép cuộn */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 w-screen h-screen m-0 p-0 overflow-hidden">
+    <div id="root" class="w-full h-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // ==========================================
+        // CÁC ICON (SVG INLINE ĐỂ KHÔNG PHỤ THUỘC THƯ VIỆN NGOÀI)
+        // ==========================================
+        const IconLayers = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>;
+        const IconInfo = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>;
+        const IconRotateCcw = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>;
+        const IconChevronLeft = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="15 18 9 12 15 6"/></svg>;
+        const IconChevronRight = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="9 18 15 12 9 6"/></svg>;
+        const IconPlay = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}><polygon points="5 3 19 12 5 21 5 3"/></svg>;
+        const IconPause = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>;
+
+        // ==========================================
+        // DỮ LIỆU CÁC DẠNG BÀI TẬP VỚI CÚ PHÁP MÀU
+        // ==========================================
+        const EXAMPLES = {
+            chia_het: [
+                {
+                    id: '1.1', title: "1. Siêu cơ bản", expression: "(x² + 5x) : x",
+                    stepsData: [
+                        { action: "Bắt đầu", desc: "Chia đa thức cho ĐƠN THỨC. Hãy làm quen vòng lặp 4 bước: [b]CHIA[/b] - [g]NHÂN[/g] - [r]TRỪ[/r] - [p]HẠ[/p]." },
+                        { action: "1. CHIA", desc: "Lấy [b]x²[/b] chia cho [o]x[/o] được [p]x[/p]. Viết [p]x[/p] vào thương." },
+                        { action: "2. NHÂN", desc: "Lấy [p]x[/p] nhân ngược lên [o]x[/o] được [g]x²[/g]. Viết ngay dưới [b]x²[/b]." },
+                        { action: "3. TRỪ", desc: "Thực hiện trừ: [b]x²[/b] - [g]x²[/g] = [r]0[/r]." },
+                        { action: "4. HẠ", desc: "Hạ [b]+ 5x[/b] xuống để tiếp tục vòng lặp mới." },
+                        { action: "1. CHIA (Lượt 2)", desc: "Lấy [b]5x[/b] chia cho [o]x[/o] được [p]+ 5[/p]. Viết [p]+ 5[/p] vào thương." },
+                        { action: "2. NHÂN (Lượt 2)", desc: "Lấy [p]+ 5[/p] nhân ngược lên [o]x[/o] được [g]5x[/g]. Viết dưới [b]5x[/b]." },
+                        { action: "3. TRỪ (Lượt 2)", desc: "Thực hiện trừ: [b]5x[/b] - [g]5x[/g] = [r]0[/r]." },
+                        { action: "Hoàn thành", desc: "Số dư bằng [r]0[/r]. Phép chia hết. Thương cuối cùng là: [p]x + 5[/p]." }
+                    ]
+                },
+                {
+                    id: '1.2', title: "2. Chia nhị thức", expression: "(x² + 3x + 2) : (x + 1)",
+                    stepsData: [
+                        { action: "Bắt đầu", desc: "Nâng cấp lên chia cho đa thức [o]x + 1[/o]. Lúc này bước [g]NHÂN[/g] sẽ tạo ra 2 hạng tử." },
+                        { action: "1. CHIA", desc: "Lấy hạng tử cao nhất [b]x²[/b] chia cho [o]x[/o] được [p]x[/p]. Viết [p]x[/p]." },
+                        { action: "2. NHÂN", desc: "Lấy [p]x[/p] nhân ngược lên với [o]x + 1[/o] được [g]x² + x[/g]." },
+                        { action: "3. TRỪ", desc: "Thực hiện trừ: ([b]x² + 3x[/b]) - ([g]x² + x[/g]) = [r]2x[/r]." },
+                        { action: "4. HẠ", desc: "Hạ [b]+ 2[/b] xuống ghép với [r]2x[/r] ta được đa thức mới: [b]2x + 2[/b]." },
+                        { action: "1. CHIA (Lượt 2)", desc: "Lấy [b]2x[/b] chia cho [o]x[/o] được [p]+ 2[/p]. Viết [p]+ 2[/p]." },
+                        { action: "2. NHÂN (Lượt 2)", desc: "Lấy [p]+ 2[/p] nhân ngược lên [o]x + 1[/o] được [g]2x + 2[/g]." },
+                        { action: "3. TRỪ (Lượt 2)", desc: "Thực hiện trừ: ([b]2x + 2[/b]) - ([g]2x + 2[/g]) = [r]0[/r]." },
+                        { action: "Hoàn thành", desc: "Số dư bằng [r]0[/r]. Phép chia hết. Thương là: [p]x + 2[/p]." }
+                    ]
+                },
+                {
+                    id: '1.3', title: "3. Hệ số âm", expression: "(2x² - 5x + 3) : (x - 1)",
+                    stepsData: [
+                        { action: "Bắt đầu", desc: "Dạng bài chứa dấu trừ, cần đặc biệt chú ý khi thực hiện phép [r]TRỪ[/r]." },
+                        { action: "1. CHIA", desc: "Lấy [b]2x²[/b] chia cho [o]x[/o] được [p]2x[/p]. Viết [p]2x[/p]." },
+                        { action: "2. NHÂN", desc: "[p]2x[/p] nhân với [o]x - 1[/o] được [g]2x² - 2x[/g]." },
+                        { action: "3. TRỪ", desc: "([b]-5x[/b]) - ([g]-2x[/g]) = -5x + 2x = [r]-3x[/r]. Rất dễ nhầm dấu ở đây!" },
+                        { action: "4. HẠ", desc: "Hạ [b]+ 3[/b] xuống ta được: [b]-3x + 3[/b]." },
+                        { action: "1. CHIA (Lượt 2)", desc: "Lấy [b]-3x[/b] chia cho [o]x[/o] được [p]-3[/p]. Viết [p]-3[/p]." },
+                        { action: "2. NHÂN (Lượt 2)", desc: "[p]-3[/p] nhân với [o]x - 1[/o] được [g]-3x + 3[/g]." },
+                        { action: "3. TRỪ (Lượt 2)", desc: "Thực hiện trừ: ([b]-3x + 3[/b]) - ([g]-3x + 3[/g]) = [r]0[/r]." },
+                        { action: "Hoàn thành", desc: "Số dư bằng [r]0[/r]. Phép chia hết. Thương là: [p]2x - 3[/p]." }
+                    ]
+                },
+                {
+                    id: '1.4', title: "4. Dấu âm đầu", expression: "(-x² + 4x - 3) : (x - 3)",
+                    stepsData: [
+                        { action: "Bắt đầu", desc: "Hạng tử bậc cao nhất mang dấu âm. Cứ làm bình thường theo quy tắc." },
+                        { action: "1. CHIA", desc: "Lấy [b]-x²[/b] chia cho [o]x[/o] được [p]-x[/p]. Viết [p]-x[/p]." },
+                        { action: "2. NHÂN", desc: "[p]-x[/p] nhân với [o]x - 3[/o] được [g]-x² + 3x[/g]." },
+                        { action: "3. TRỪ", desc: "Thực hiện trừ: ([b]4x[/b]) - ([g]3x[/g]) = [r]x[/r]." },
+                        { action: "4. HẠ", desc: "Hạ [b]- 3[/b] xuống ta được đa thức mới: [b]x - 3[/b]." },
+                        { action: "1. CHIA (Lượt 2)", desc: "Lấy [b]x[/b] chia cho [o]x[/o] được [p]+ 1[/p]. Viết [p]+ 1[/p]." },
+                        { action: "2. NHÂN (Lượt 2)", desc: "[p]+ 1[/p] nhân với [o]x - 3[/o] được [g]x - 3[/g]." },
+                        { action: "3. TRỪ (Lượt 2)", desc: "Thực hiện trừ: ([b]x - 3[/b]) - ([g]x - 3[/g]) = [r]0[/r]." },
+                        { action: "Hoàn thành", desc: "Phép chia hết. Thương là: [p]-x + 1[/p]." }
+                    ]
+                }
+            ],
+            chia_du: [
+                {
+                    id: '2.1', title: "1. Dư số dương", expression: "(x² + 5x + 8) : (x + 2)",
+                    stepsData: [
+                        { action: "Bắt đầu", desc: "Thực hiện tương tự phép chia hết để xem điều gì xảy ra ở cuối." },
+                        { action: "1. CHIA", desc: "Lấy [b]x²[/b] chia [o]x[/o] được [p]x[/p]. Viết [p]x[/p]." },
+                        { action: "2. NHÂN", desc: "[p]x[/p] nhân [o]x + 2[/o] được [g]x² + 2x[/g]." },
+                        { action: "3. TRỪ", desc: "([b]x² + 5x[/b]) - ([g]x² + 2x[/g]) = [r]3x[/r]." },
+                        { action: "4. HẠ", desc: "Hạ [b]+ 8[/b] xuống ta được: [b]3x + 8[/b]." },
+                        { action: "1. CHIA (Lượt 2)", desc: "Lấy [b]3x[/b] chia [o]x[/o] được [p]+ 3[/p]. Viết [p]+ 3[/p]." },
+                        { action: "2. NHÂN (Lượt 2)", desc: "[p]+ 3[/p] nhân [o]x + 2[/o] được [g]3x + 6[/g]." },
+                        { action: "3. TRỪ (Lượt 2)", desc: "Thực hiện trừ: [b]8[/b] - [g]6[/g] = [y]2[/y]." },
+                        { action: "Hoàn thành", desc: "Số [y]2[/y] có bậc 0 (nhỏ hơn đa thức chia là x+2 bậc 1). Dừng lại. Thương: [p]x + 3[/p], Dư: [y]2[/y]." }
+                    ]
+                },
+                {
+                    id: '2.2', title: "2. Chia đơn thức", expression: "(2x² + 4x + 5) : 2x",
+                    stepsData: [
+                        { action: "Bắt đầu", desc: "Đa thức chia lúc này chỉ có 1 hạng tử (đơn thức [o]2x[/o])." },
+                        { action: "1. CHIA", desc: "Lấy [b]2x²[/b] chia cho [o]2x[/o] được [p]x[/p]. Viết [p]x[/p]." },
+                        { action: "2. NHÂN", desc: "[p]x[/p] nhân [o]2x[/o] được [g]2x²[/g]. Viết dưới [b]2x²[/b]." },
+                        { action: "3. TRỪ", desc: "[b]2x²[/b] - [g]2x²[/g] = [r]0[/r]." },
+                        { action: "4. HẠ", desc: "Hạ [b]+ 4x[/b] và [b]+ 5[/b] xuống để chia tiếp." },
+                        { action: "1. CHIA (Lượt 2)", desc: "Lấy [b]4x[/b] chia cho [o]2x[/o] được [p]+ 2[/p]. Viết [p]+ 2[/p]." },
+                        { action: "2. NHÂN (Lượt 2)", desc: "[p]+ 2[/p] nhân [o]2x[/o] được [g]4x[/g]. Viết dưới [b]4x[/b]." },
+                        { action: "3. TRỪ (Lượt 2)", desc: "[b]4x[/b] - [g]4x[/g] = [r]0[/r]." },
+                        { action: "Hoàn thành", desc: "Còn lại [y]5[/y] không chia được cho 2x. Dừng phép chia. Thương: [p]x + 2[/p], Dư: [y]5[/y]." }
+                    ]
+                },
+                {
+                    id: '2.3', title: "3. Dư số âm", expression: "(x² + 2x - 5) : (x + 3)",
+                    stepsData: [
+                        { action: "Bắt đầu", desc: "Lưu ý ở bước trừ cuối cùng để không bị sai dấu của số dư." },
+                        { action: "1. CHIA", desc: "Lấy [b]x²[/b] chia [o]x[/o] được [p]x[/p]. Viết [p]x[/p]." },
+                        { action: "2. NHÂN", desc: "[p]x[/p] nhân [o]x + 3[/o] được [g]x² + 3x[/g]." },
+                        { action: "3. TRỪ", desc: "([b]2x[/b]) - ([g]3x[/g]) = [r]-x[/r]." },
+                        { action: "4. HẠ", desc: "Hạ [b]- 5[/b] xuống ta được: [b]-x - 5[/b]." },
+                        { action: "1. CHIA (Lượt 2)", desc: "Lấy [b]-x[/b] chia [o]x[/o] được [p]- 1[/p]. Viết [p]- 1[/p]." },
+                        { action: "2. NHÂN (Lượt 2)", desc: "[p]- 1[/p] nhân [o]x + 3[/o] được [g]-x - 3[/g]." },
+                        { action: "3. TRỪ (Lượt 2)", desc: "([b]-5[/b]) - ([g]-3[/g]) = -5 + 3 = [y]-2[/y]. (Đặc biệt lưu ý!)." },
+                        { action: "Hoàn thành", desc: "Số dư là số âm. Thương: [p]x - 1[/p], Dư: [y]-2[/y]." }
+                    ]
+                }
+            ]
+        };
+
+        // ==========================================
+        // PARSER MÀU SẮC
+        // ==========================================
+        const parseText = (text) => {
+            if (!text) return null;
+            const parts = text.split(/(\[[bopgry]\](?:.*?)\[\/[bopgry]\])/g);
+            return parts.map((part, index) => {
+                if (part.startsWith('[b]')) return <span key={index} className="bg-blue-100 text-blue-700 font-bold px-1.5 py-0.5 rounded mx-0.5 shadow-sm border border-blue-200">{part.slice(3, -4)}</span>;
+                if (part.startsWith('[o]')) return <span key={index} className="bg-orange-100 text-orange-700 font-bold px-1.5 py-0.5 rounded mx-0.5 shadow-sm border border-orange-200">{part.slice(3, -4)}</span>;
+                if (part.startsWith('[p]')) return <span key={index} className="bg-purple-100 text-purple-700 font-bold px-1.5 py-0.5 rounded mx-0.5 shadow-sm border border-purple-200">{part.slice(3, -4)}</span>;
+                if (part.startsWith('[g]')) return <span key={index} className="bg-green-100 text-green-700 font-bold px-1.5 py-0.5 rounded mx-0.5 shadow-sm border border-green-200">{part.slice(3, -4)}</span>;
+                if (part.startsWith('[r]')) return <span key={index} className="bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded mx-0.5 shadow-sm border border-red-200">{part.slice(3, -4)}</span>;
+                if (part.startsWith('[y]')) return <span key={index} className="bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded mx-0.5 shadow-sm border border-amber-200">{part.slice(3, -4)}</span>;
+                return <span key={index}>{part}</span>;
+            });
+        };
+
+        const StepByStepDivision = () => {
+            const [section, setSection] = useState('chia_het');
+            const [exampleIdx, setExampleIdx] = useState(0);
+            const [step, setStep] = useState(0);
+            const [isPlaying, setIsPlaying] = useState(false);
+
+            const activeExample = EXAMPLES[section][exampleIdx];
+            const totalSteps = activeExample.stepsData.length - 1;
+
+            const handleSectionChange = (newSection) => {
+                setSection(newSection);
+                setExampleIdx(0);
+                setStep(0);
+                setIsPlaying(false);
+            };
+
+            const handleExampleChange = (idx) => {
+                setExampleIdx(idx);
+                setStep(0);
+                setIsPlaying(false);
+            };
+
+            useEffect(() => {
+                let timer;
+                if (isPlaying && step < totalSteps) {
+                    timer = setTimeout(() => setStep(s => s + 1), 3500);
+                } else if (step >= totalSteps) {
+                    setIsPlaying(false);
+                }
+                return () => clearTimeout(timer);
+            }, [isPlaying, step, totalSteps]);
+
+            const nextStep = () => step < totalSteps && setStep(step + 1);
+            const prevStep = () => step > 0 && setStep(step - 1);
+            const reset = () => { setStep(0); setIsPlaying(false); };
+            const togglePlay = () => setIsPlaying(!isPlaying);
+
+            const hl = (currentStep, rules) => {
+                const type = rules[currentStep];
+                const base = "transition-all duration-300 px-1 sm:px-1.5 py-0.5 rounded inline-block ";
+                if (!type) return base + "text-slate-800 font-semibold";
+                
+                const styles = {
+                    'b': base + 'bg-blue-100 text-blue-700 font-bold shadow-sm border border-blue-200 scale-[1.05] z-10',
+                    'o': base + 'bg-orange-100 text-orange-700 font-bold shadow-sm border border-orange-200 scale-[1.05] z-10',
+                    'p': base + 'bg-purple-100 text-purple-700 font-bold shadow-sm border border-purple-200 scale-[1.05] z-10',
+                    'g': base + 'bg-green-100 text-green-700 font-bold shadow-sm border border-green-200 scale-[1.05] z-10',
+                    'r': base + 'bg-red-100 text-red-700 font-bold shadow-sm border border-red-200 scale-[1.05] z-10',
+                    'y': base + 'bg-amber-100 text-amber-700 font-bold shadow-sm border border-amber-200 scale-[1.05] z-10',
+                    'dim': base + 'text-slate-300 font-normal',
+                };
+                return styles[type];
+            };
+
+            const MathRow = ({ children, visible = true }) => (
+                <div className={`flex items-end justify-end font-mono text-base md:text-xl tracking-wide transition-all duration-500 flex-nowrap whitespace-nowrap overflow-hidden ${visible ? 'max-h-12 md:max-h-16 opacity-100 py-0.5' : 'max-h-0 opacity-0 py-0'}`}>
+                    {children}
+                </div>
+            );
+            
+            const Cell = ({ w, children, className = "", hlClass = "" }) => (
+                <div style={{ width: w }} className={`text-right flex-shrink-0 flex items-center justify-end ${className}`}>
+                    {hlClass ? <span className={hlClass}>{children}</span> : children}
+                </div>
+            );
+
+            // ==========================================
+            // RENDER CÁC BẢNG TÍNH
+            // ==========================================
+            const renderBoard_1_1 = () => (
+                <div className="flex bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200 w-max mx-auto">
+                    <div className="border-r-[2px] md:border-r-[3px] border-slate-700 pr-3 md:pr-4 pb-2 md:pb-3">
+                        <MathRow>
+                            <Cell w="60px"/>
+                            <Cell w="50px" hlClass={hl(step, {1:'b', 2:'b', 3:'b', 4:'dim', 5:'dim', 6:'dim', 7:'dim', 8:'dim'})}>x²</Cell>
+                            <Cell w="60px" hlClass={hl(step, {4:'b', 5:'dim', 6:'dim', 7:'dim', 8:'dim'})}>+ 5x</Cell>
+                        </MathRow>
+                        <MathRow visible={step >= 2}>
+                            <Cell w="60px" className="text-green-600 font-bold text-right pr-2">-</Cell>
+                            <Cell w="50px" hlClass={hl(step, {2:'g', 3:'g', 4:'dim', 5:'dim', 6:'dim', 7:'dim', 8:'dim'})}>x²</Cell>
+                            <Cell w="60px"/>
+                        </MathRow>
+                        <div className={`flex justify-end w-full transition-all duration-500 ${step >= 3 ? 'max-h-4 opacity-100 my-1' : 'max-h-0 opacity-0 my-0'}`}>
+                            <div className="h-[2px] bg-slate-400 rounded-full w-[50px] mr-[60px]"></div></div>
+                        <MathRow visible={step >= 3}>
+                            <Cell w="60px"/>
+                            <Cell w="50px" hlClass={hl(step, {3:'r', 4:'dim', 5:'dim', 6:'dim', 7:'dim', 8:'dim'})}>0</Cell>
+                            <Cell w="60px"><div className={`transition-all duration-700 transform ${step >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}><span className={hl(step, {4:'b', 5:'b', 6:'b', 7:'b'})}>+ 5x</span></div></Cell>
+                        </MathRow>
+                        <MathRow visible={step >= 6}>
+                            <Cell w="60px" className="text-green-600 font-bold text-right pr-2">-</Cell>
+                            <Cell w="50px"/>
+                            <Cell w="60px" hlClass={hl(step, {6:'g', 7:'g', 8:'dim'})}>5x</Cell>
+                        </MathRow>
+                        <div className={`flex justify-end w-full transition-all duration-500 ${step >= 7 ? 'max-h-4 opacity-100 my-1' : 'max-h-0 opacity-0 my-0'}`}>
+                            <div className="h-[2px] bg-slate-400 rounded-full w-[50px]"></div></div>
+                        <MathRow visible={step >= 7}>
+                            <Cell w="60px"/>
+                            <Cell w="50px"/>
+                            <Cell w="60px" hlClass={hl(step, {7:'r', 8:'r'})}>0</Cell>
+                        </MathRow>
+                    </div>
+                    <div className="pl-3 md:pl-4 pb-2 flex flex-col items-start min-w-[70px]">
+                        <div className="border-b-[2px] md:border-b-[3px] border-slate-700 pb-1 w-full font-mono text-base md:text-xl text-center">
+                            <span className={hl(step, {1:'o', 2:'o', 5:'o', 6:'o'})}>x</span>
+                        </div>
+                        <div className="pt-1.5 w-full font-mono text-base md:text-xl flex whitespace-nowrap">
+                            <div className={`transition-opacity duration-500 ${step >= 1 ? 'opacity-100' : 'opacity-0'}`}>
+                                <span className={hl(step, {1:'p', 2:'p'})}>x</span>
+                            </div>
+                            <div className={`transition-all duration-500 ${step >= 5 ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}>
+                                <span className={hl(step, {5:'p', 6:'p'})}>&nbsp;+ 5</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderBoard_1_2 = () => (
+                <div className="flex bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200 w-max mx-auto">
+                    <div className="border-r-[2px] md:border-r-[3px] border-slate-700 pr-3 md:pr-4 pb-2 md:pb-3">
+                        <MathRow>
+                            <Cell w="20px"/>
+                            <Cell w="40px" hlClass={hl(step, {1:'b', 2:'b', 3:'b', 4:'dim', 5:'dim', 6:'dim', 7:'dim', 8:'dim'})}>x²</Cell>
+                            <Cell w="60px" hlClass={hl(step, {3:'b', 4:'dim', 5:'dim', 6:'dim', 7:'dim', 8:'dim'})}>+ 3x</Cell>
+                            <Cell w="60px" hlClass={hl(step, {4:'b', 5:'dim', 6:'dim', 7:'dim', 8:'dim'})}>+ 2</Cell>
+                        </MathRow>
+                        <MathRow visible={step >= 2}>
+                            <Cell w="20px" className="text-green-600 font-bold text-center">-</Cell>
+                            <Cell w="40px" hlClass={hl(step, {2:'g', 3:'g', 4:'dim', 5:'dim', 6:'dim', 7:'dim'})}>(x²</Cell>
+                            <Cell w="60px" hlClass={hl(step, {2:'g', 3:'g', 4:'dim', 5:'dim', 6:'dim', 7:'dim'})}>+ x)</Cell>
+                            <Cell w="60px"/>
+                        </MathRow>
+                        <div className={`flex justify-end w-full transition-all duration-500 ${step >= 3 ? 'max-h-4 opacity-100 my-1' : 'max-h-0 opacity-0 my-0'}`}>
+                            <div className="h-[2px] bg-slate-400 rounded-full w-[110px] mr-[60px]"></div></div>
+                        <MathRow visible={step >= 3}>
+                            <Cell w="20px"/>
+                            <Cell w="40px"/>
+                            <Cell w="60px" hlClass={hl(step, {3:'r', 4:'b', 5:'b', 6:'b', 7:'b'})}>2x</Cell>
+                            <Cell w="60px"><div className={`transition-all duration-700 transform ${step >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}><span className={hl(step, {4:'b', 5:'b', 6:'b', 7:'b'})}>+ 2</span></div></Cell>
+                        </MathRow>
+                        <MathRow visible={step >= 6}>
+                            <Cell w="20px"/>
+                            <Cell w="40px" className="text-green-600 font-bold text-center">-</Cell>
+                            <Cell w="60px" hlClass={hl(step, {6:'g', 7:'g', 8:'dim'})}>(2x</Cell>
+                            <Cell w="60px" hlClass={hl(step, {6:'g', 7:'g', 8:'dim'})}>+ 2)</Cell>
+                        </MathRow>
+                        <div className={`flex justify-end w-full transition-all duration-500 ${step >= 7 ? 'max-h-4 opacity-100 my-1' : 'max-h-0 opacity-0 my-0'}`}>
+                            <div className="h-[2px] bg-slate-400 rounded-full w-[130px]"></div></div>
+                        <MathRow visible={step >= 7}>
+                            <Cell w="20px"/>
+                            <Cell w="40px"/>
+                            <Cell w="60px"/>
+                            <Cell w="60px" hlClass={hl(step, {7:'r', 8:'r'})}>0</Cell>
+                        </MathRow>
+                    </div>
+                    <div className="pl-3 md:pl-4 pb-2 flex flex-col items-start min-w-[70px]">
+                        <div className="border-b-[2px] md:border-b-[3px] border-slate-700 pb-1 w-full font-mono text-base md:text-xl">
+                            <span className={hl(step, {1:'o', 2:'o', 5:'o', 6:'o'})}>x</span>
+                            <span className={hl(step, {2:'o', 6:'o'})}>&nbsp;+ 1</span>
+                        </div>
+                        <div className="pt-1.5 w-full font-mono text-base md:text-xl flex whitespace-nowrap">
+                            <div className={`transition-opacity duration-500 ${step >= 1 ? 'opacity-100' : 'opacity-0'}`}>
+                                <span className={hl(step, {1:'p', 2:'p'})}>x</span>
+                            </div>
+                            <div className={`transition-all duration-500 ${step >= 5 ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}>
+                                <span className={hl(step, {5:'p', 6:'p'})}>&nbsp;+ 2</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderBoard_1_3 = () => (
+                <div className="flex bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200 w-max mx-auto">
+                    <div className="border-r-[2px] md:border-r-[3px] border-slate-700 pr-3 md:pr-4 pb-2">
+                        <MathRow>
+                            <Cell w="20px"/>
+                            <Cell w="50px" hlClass={hl(step, {1:'b', 2:'b', 3:'b', 4:'dim', 5:'dim', 6:'dim', 7:'dim'})}>2x²</Cell>
+                            <Cell w="60px" hlClass={hl(step, {3:'b', 4:'dim', 5:'dim', 6:'dim', 7:'dim'})}>- 5x</Cell>
+                            <Cell w="60px" hlClass={hl(step, {4:'b', 5:'dim', 6:'dim', 7:'dim'})}>+ 3</Cell>
+                        </MathRow>
+                        <MathRow visible={step >= 2}>
+                            <Cell w="20px" className="text-green-600 font-bold text-center">-</Cell>
+                            <Cell w="50px" hlClass={hl(step, {2:'g', 3:'g', 4:'dim'})}>(2x²</Cell>
+                            <Cell w="60px" hlClass={hl(step, {2:'g', 3:'g', 4:'dim'})}>- 2x)</Cell>
+                            <Cell w="60px"/>
+                        </MathRow>
+                        <div className={`flex justify-end w-full transition-all duration-500 ${step >= 3 ? 'max-h-4 opacity-100 my-1' : 'max-h-0 opacity-0 my-0'}`}>
+                            <div className="h-[2px] bg-slate-400 rounded-full w-[120px] mr-[60px]"></div></div>
+                        <MathRow visible={step >= 3}>
+                            <Cell w="20px"/>
+                            <Cell w="50px"/>
+                            <Cell w="60px" hlClass={hl(step, {3:'r', 4:'b', 5:'b', 6:'b', 7:'b'})}>- 3x</Cell>
+                            <Cell w="60px"><div className={`transition-all duration-700 transform ${step >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}><span className={hl(step, {4:'b', 5:'b', 6:'b', 7:'b'})}>+ 3</span></div></Cell>
+                        </MathRow>
+                        <MathRow visible={step >= 6}>
+                            <Cell w="20px"/>
+                            <Cell w="50px" className="text-green-600 font-bold text-center">-</Cell>
+                            <Cell w="60px" hlClass={hl(step, {6:'g', 7:'g', 8:'dim'})}>(-3x</Cell>
+                            <Cell w="60px" hlClass={hl(step, {6:'g', 7:'g', 8:'dim'})}>+ 3)</Cell>
+                        </MathRow>
+                        <div className={`flex justify-end w-full transition-all duration-500 ${step >= 7 ? 'max-h-4 opacity-100 my-1' : 'max-h-0 opacity-0 my-0'}`}>
+                            <div className="h-[2px] bg-slate-400 rounded-full w-[130px]"></div></div>
+                        <MathRow visible={step >= 7}>
+                            <Cell w="20px"/>
+                            <Cell w="50px"/>
+                            <Cell w="60px"/>
+                            <Cell w="60px" hlClass={hl(step, {7:'r', 8:'r'})}>0</Cell>
+                        </MathRow>
+                    </div>
+                    <div className="pl-3 md:pl-4 pb-2 flex flex-col items-start min-w-[70px]">
+                        <div className="border-b-[2px] md:border-b-[3px] border-slate-700 pb-1 w-full font-mono text-base md:text-xl">
+                            <span className={hl(step, {1:'o', 2:'o', 5:'o', 6:'o'})}>x</span>
+                            <span className={hl(step, {2:'o', 6:'o'})}>&nbsp;- 1</span>
+                        </div>
+                        <div className="pt-1.5 w-full font-mono text-base md:text-xl flex whitespace-nowrap">
+                            <div className={`transition-opacity duration-500 ${step >= 1 ? 'opacity-100' : 'opacity-0'}`}>
+                                <span className={hl(step, {1:'p', 2:'p'})}>2x</span>
+                            </div>
+                            <div className={`transition-all duration-500 ${step >= 5 ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}>
+                                <span className={hl(step, {5:'p', 6:'p'})}>&nbsp;- 3</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderBoard_1_4 = () => (
+                <div className="flex bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200 w-max mx-auto">
+                    <div className="border-r-[2px] md:border-r-[3px] border-slate-700 pr-3 md:pr-4 pb-2">
+                        <MathRow>
+                            <Cell w="20px"/>
+                            <Cell w="50px" hlClass={hl(step, {1:'b', 2:'b', 3:'b', 4:'dim', 5:'dim', 6:'dim', 7:'dim'})}>-x²</Cell>
+                            <Cell w="60px" hlClass={hl(step, {3:'b', 4:'dim', 5:'dim', 6:'dim', 7:'dim'})}>+ 4x</Cell>
+                            <Cell w="60px" hlClass={hl(step, {4:'b', 5:'dim', 6:'dim', 7:'dim'})}>- 3</Cell>
+                        </MathRow>
+                        <MathRow visible={step >= 2}>
+                            <Cell w="20px" className="text-green-600 font-bold text-center">-</Cell>
+                            <Cell w="50px" hlClass={hl(step, {2:'g', 3:'g', 4:'dim'})}>(-x²</Cell>
+                            <Cell w="60px" hlClass={hl(step, {2:'g', 3:'g', 4:'dim'})}>+ 3x)</Cell>
+                            <Cell w="60px"/>
+                        </MathRow>
+                        <div className={`flex justify-end w-full transition-all duration-500 ${step >= 3 ? 'max-h-4 opacity-100 my-1' : 'max-h-0 opacity-0 my-0'}`}>
+                            <div className="h-[2px] bg-slate-400 rounded-full w-[120px] mr-[60px]"></div></div>
+                        <MathRow visible={step >= 3}>
+                            <Cell w="20px"/>
+                            <Cell w="50px"/>
+                            <Cell w="60px" hlClass={hl(step, {3:'r', 4:'b', 5:'b', 6:'b', 7:'b'})}>x</Cell>
+                            <Cell w="60px"><div className={`transition-all duration-700 transform ${step >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}><span className={hl(step, {4:'b', 5:'b', 6:'b', 7:'b'})}>- 3</span></div></Cell>
+                        </MathRow>
+                        <MathRow visible={step >= 6}>
+                            <Cell w="20px"/>
+                            <Cell w="50px" className="text-green-600 font-bold text-center">-</Cell>
+                            <Cell w="60px" hlClass={hl(step, {6:'g', 7:'g'})}>(x</Cell>
+                            <Cell w="60px" hlClass={hl(step, {6:'g', 7:'g'})}>- 3)</Cell>
+                        </MathRow>
+                        <div className={`flex justify-end w-full transition-all duration-500 ${step >= 7 ? 'max-h-4 opacity-100 my-1' : 'max-h-0 opacity-0 my-0'}`}>
+                            <div className="h-[2px] bg-slate-400 rounded-full w-[130px]"></div></div>
+                        <MathRow visible={step >= 7}>
+                            <Cell w="20px"/>
+                            <Cell w="50px"/>
+                            <Cell w="60px"/>
+                            <Cell w="60px" hlClass={hl(step, {7:'r', 8:'r'})}>0</Cell>
+                        </MathRow>
+                    </div>
+                    <div className="pl-3 md:pl-4 pb-2 flex flex-col items-start min-w-[70px]">
+                        <div className="border-b-[2px] md:border-b-[3px] border-slate-700 pb-1 w-full font-mono text-base md:text-xl">
+                            <span className={hl(step, {1:'o', 2:'o', 5:'o', 6:'o'})}>x</span>
+                            <span className={hl(step, {2:'o', 6:'o'})}>&nbsp;- 3</span>
+                        </div>
+                        <div className="pt-1.5 w-full font-mono text-base md:text-xl flex whitespace-nowrap">
+                            <div className={`transition-opacity duration-500 ${step >= 1 ? 'opacity-100' : 'opacity-0'}`}>
+                                <span className={hl(step, {1:'p', 2:'p'})}>-x</span>
+                            </div>
+                            <div className={`transition-all duration-500 ${step >= 5 ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}>
+                                <span className={hl(step, {5:'p', 6:'p'})}>&nbsp;+ 1</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderBoard_2_1 = () => (
+                <div className="flex bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200 w-max mx-auto">
+                    <div className="border-r-[2px] md:border-r-[3px] border-slate-700 pr-3 md:pr-4 pb-2">
+                        <MathRow>
+                            <Cell w="20px"/>
+                            <Cell w="40px" hlClass={hl(step, {1:'b', 2:'b', 3:'b', 4:'dim', 5:'dim', 6:'dim', 7:'dim'})}>x²</Cell>
+                            <Cell w="60px" hlClass={hl(step, {3:'b', 4:'dim', 5:'dim', 6:'dim', 7:'dim'})}>+ 5x</Cell>
+                            <Cell w="60px" hlClass={hl(step, {4:'b', 5:'dim', 6:'dim', 7:'dim'})}>+ 8</Cell>
+                        </MathRow>
+                        <MathRow visible={step >= 2}>
+                            <Cell w="20px" className="text-green-600 font-bold text-center">-</Cell>
+                            <Cell w="40px" hlClass={hl(step, {2:'g', 3:'g', 4:'dim'})}>(x²</Cell>
+                            <Cell w="60px" hlClass={hl(step, {2:'g', 3:'g', 4:'dim'})}>+ 2x)</Cell>
+                            <Cell w="60px"/>
+                        </MathRow>
+                        <div className={`flex justify-end w-full transition-all duration-500 ${step >= 3 ? 'max-h-4 opacity-100 my-1' : 'max-h-0 opacity-0 my-0'}`}>
+                            <div className="h-[2px] bg-slate-400 rounded-full w-[110px] mr-[60px]"></div></div>
+                        <MathRow visible={step >= 3}>
+                            <Cell w="20px"/>
+                            <Cell w="40px"/>
+                            <Cell w="60px" hlClass={hl(step, {3:'r', 4:'b', 5:'b', 6:'b', 7:'b'})}>3x</Cell>
+                            <Cell w="60px"><div className={`transition-all duration-700 transform ${step >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}><span className={hl(step, {4:'b', 5:'b', 6:'b', 7:'b'})}>+ 8</span></div></Cell>
+                        </MathRow>
+                        <MathRow visible={step >= 6}>
+                            <Cell w="20px"/>
+                            <Cell w="40px" className="text-green-600 font-bold text-center">-</Cell>
+                            <Cell w="60px" hlClass={hl(step, {6:'g', 7:'g'})}>(3x</Cell>
+                            <Cell w="60px" hlClass={hl(step, {6:'g', 7:'g'})}>+ 6)</Cell>
+                        </MathRow>
+                        <div className={`flex justify-end w-full transition-all duration-500 ${step >= 7 ? 'max-h-4 opacity-100 my-1' : 'max-h-0 opacity-0 my-0'}`}>
+                            <div className="h-[2px] bg-slate-400 rounded-full w-[130px]"></div></div>
+                        <MathRow visible={step >= 7}>
+                            <Cell w="20px"/>
+                            <Cell w="40px"/>
+                            <Cell w="60px"/>
+                            <Cell w="60px" hlClass={hl(step, {7:'y', 8:'y'})}>2</Cell>
+                        </MathRow>
+                    </div>
+                    <div className="pl-3 md:pl-4 pb-2 flex flex-col items-start min-w-[70px]">
+                        <div className="border-b-[2px] md:border-b-[3px] border-slate-700 pb-1 w-full font-mono text-base md:text-xl">
+                            <span className={hl(step, {1:'o', 2:'o', 5:'o', 6:'o'})}>x</span>
+                            <span className={hl(step, {2:'o', 6:'o'})}>&nbsp;+ 2</span>
+                        </div>
+                        <div className="pt-1.5 w-full font-mono text-base md:text-xl flex whitespace-nowrap">
+                            <div className={`transition-opacity duration-500 ${step >= 1 ? 'opacity-100' : 'opacity-0'}`}>
+                                <span className={hl(step, {1:'p', 2:'p'})}>x</span>
+                            </div>
+                            <div className={`transition-all duration-500 ${step >= 5 ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}>
+                                <span className={hl(step, {5:'p', 6:'p'})}>&nbsp;+ 3</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderBoard_2_2 = () => (
+                <div className="flex bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200 w-max mx-auto">
+                    <div className="border-r-[2px] md:border-r-[3px] border-slate-700 pr-3 md:pr-4 pb-2">
+                        <MathRow>
+                            <Cell w="50px" hlClass={hl(step, {1:'b', 2:'b', 3:'b', 4:'dim'})}>2x²</Cell>
+                            <Cell w="60px" hlClass={hl(step, {4:'b', 5:'dim'})}>+ 4x</Cell>
+                            <Cell w="60px" hlClass={hl(step, {4:'b', 5:'dim', 6:'dim'})}>+ 5</Cell>
+                        </MathRow>
+                        <MathRow visible={step >= 2}>
+                            <Cell w="50px" className="flex items-center justify-end"><span className="text-green-600 font-bold mr-1">-</span> <span className={hl(step, {2:'g', 3:'g'})}>2x²</span></Cell>
+                            <Cell w="60px"/>
+                            <Cell w="60px"/>
+                        </MathRow>
+                        <div className={`flex justify-end w-full transition-all duration-500 ${step >= 3 ? 'max-h-4 opacity-100 my-1' : 'max-h-0 opacity-0 my-0'}`}>
+                            <div className="h-[2px] bg-slate-400 rounded-full w-[50px] mr-[120px]"></div></div>
+                        <MathRow visible={step >= 3}>
+                            <Cell w="50px"/>
+                            <Cell w="60px"><div className={`transition-all duration-700 transform ${step >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}><span className={hl(step, {4:'b', 5:'b', 6:'b', 7:'b'})}>+ 4x</span></div></Cell>
+                            <Cell w="60px"><div className={`transition-all duration-700 transform ${step >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}><span className={hl(step, {4:'b', 5:'b', 6:'b', 7:'b'})}>+ 5</span></div></Cell>
+                        </MathRow>
+                        <MathRow visible={step >= 6}>
+                            <Cell w="50px"/>
+                            <Cell w="60px" className="flex items-center justify-end"><span className="text-green-600 font-bold mr-1">-</span> <span className={hl(step, {6:'g', 7:'g'})}>4x</span></Cell>
+                            <Cell w="60px"/>
+                        </MathRow>
+                        <div className={`flex justify-end w-full transition-all duration-500 ${step >= 7 ? 'max-h-4 opacity-100 my-1' : 'max-h-0 opacity-0 my-0'}`}>
+                            <div className="h-[2px] bg-slate-400 rounded-full w-[50px] mr-[60px]"></div></div>
+                        <MathRow visible={step >= 7}>
+                            <Cell w="50px"/>
+                            <Cell w="60px"/>
+                            <Cell w="60px" hlClass={hl(step, {7:'y', 8:'y'})}>5</Cell>
+                        </MathRow>
+                    </div>
+                    <div className="pl-3 md:pl-4 pb-2 flex flex-col items-start min-w-[70px]">
+                        <div className="border-b-[2px] md:border-b-[3px] border-slate-700 pb-1 w-full font-mono text-base md:text-xl">
+                            <span className={hl(step, {1:'o', 2:'o', 5:'o', 6:'o'})}>2x</span>
+                        </div>
+                        <div className="pt-1.5 w-full font-mono text-base md:text-xl flex whitespace-nowrap">
+                            <div className={`transition-opacity duration-500 ${step >= 1 ? 'opacity-100' : 'opacity-0'}`}>
+                               <span className={hl(step, {1:'p', 2:'p'})}>x</span>
+                            </div>
+                            <div className={`transition-all duration-500 ${step >= 5 ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}>
+                               <span className={hl(step, {5:'p', 6:'p'})}>&nbsp;+ 2</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderBoard_2_3 = () => (
+                <div className="flex bg-white p-3 md:p-5 rounded-xl shadow-sm border border-slate-200 w-max mx-auto">
+                    <div className="border-r-[2px] md:border-r-[3px] border-slate-700 pr-3 md:pr-4 pb-2">
+                        <MathRow>
+                            <Cell w="20px"/>
+                            <Cell w="40px" hlClass={hl(step, {1:'b', 2:'b', 3:'b', 4:'dim', 5:'dim', 6:'dim', 7:'dim'})}>x²</Cell>
+                            <Cell w="60px" hlClass={hl(step, {3:'b', 4:'dim', 5:'dim', 6:'dim', 7:'dim'})}>+ 2x</Cell>
+                            <Cell w="60px" hlClass={hl(step, {4:'b', 5:'dim', 6:'dim', 7:'dim'})}>- 5</Cell>
+                        </MathRow>
+                        <MathRow visible={step >= 2}>
+                            <Cell w="20px" className="text-green-600 font-bold text-center">-</Cell>
+                            <Cell w="40px" hlClass={hl(step, {2:'g', 3:'g', 4:'dim'})}>(x²</Cell>
+                            <Cell w="60px" hlClass={hl(step, {2:'g', 3:'g', 4:'dim'})}>+ 3x)</Cell>
+                            <Cell w="60px"/>
+                        </MathRow>
+                        <div className={`flex justify-end w-full transition-all duration-500 ${step >= 3 ? 'max-h-4 opacity-100 my-1' : 'max-h-0 opacity-0 my-0'}`}>
+                            <div className="h-[2px] bg-slate-400 rounded-full w-[110px] mr-[60px]"></div></div>
+                        <MathRow visible={step >= 3}>
+                            <Cell w="20px"/>
+                            <Cell w="40px"/>
+                            <Cell w="60px" hlClass={hl(step, {3:'r', 4:'b', 5:'b', 6:'b', 7:'b'})}>- x</Cell>
+                            <Cell w="60px"><div className={`transition-all duration-700 transform ${step >= 4 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}><span className={hl(step, {4:'b', 5:'b', 6:'b', 7:'b'})}>- 5</span></div></Cell>
+                        </MathRow>
+                        <MathRow visible={step >= 6}>
+                            <Cell w="20px"/>
+                            <Cell w="40px" className="text-green-600 font-bold text-center">-</Cell>
+                            <Cell w="60px" hlClass={hl(step, {6:'g', 7:'g'})}>(-x</Cell>
+                            <Cell w="60px" hlClass={hl(step, {6:'g', 7:'g'})}>- 3)</Cell>
+                        </MathRow>
+                        <div className={`flex justify-end w-full transition-all duration-500 ${step >= 7 ? 'max-h-4 opacity-100 my-1' : 'max-h-0 opacity-0 my-0'}`}>
+                            <div className="h-[2px] bg-slate-400 rounded-full w-[130px]"></div></div>
+                        <MathRow visible={step >= 7}>
+                            <Cell w="20px"/>
+                            <Cell w="40px"/>
+                            <Cell w="60px"/>
+                            <Cell w="60px" hlClass={hl(step, {7:'y', 8:'y'})}>- 2</Cell>
+                        </MathRow>
+                    </div>
+                    <div className="pl-3 md:pl-4 pb-2 flex flex-col items-start min-w-[70px]">
+                        <div className="border-b-[2px] md:border-b-[3px] border-slate-700 pb-1 w-full font-mono text-base md:text-xl">
+                            <span className={hl(step, {1:'o', 2:'o', 5:'o', 6:'o'})}>x</span>
+                            <span className={hl(step, {2:'o', 6:'o'})}>&nbsp;+ 3</span>
+                        </div>
+                        <div className="pt-1.5 w-full font-mono text-base md:text-xl flex whitespace-nowrap">
+                            <div className={`transition-opacity duration-500 ${step >= 1 ? 'opacity-100' : 'opacity-0'}`}>
+                                <span className={hl(step, {1:'p', 2:'p'})}>x</span>
+                            </div>
+                            <div className={`transition-all duration-500 ${step >= 5 ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'}`}>
+                                <span className={hl(step, {5:'p', 6:'p'})}>&nbsp;- 1</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const getActiveBoard = () => {
+                if (section === 'chia_het') {
+                    if (exampleIdx === 0) return renderBoard_1_1();
+                    if (exampleIdx === 1) return renderBoard_1_2();
+                    if (exampleIdx === 2) return renderBoard_1_3();
+                    if (exampleIdx === 3) return renderBoard_1_4();
+                } else {
+                    if (exampleIdx === 0) return renderBoard_2_1();
+                    if (exampleIdx === 1) return renderBoard_2_2();
+                    if (exampleIdx === 2) return renderBoard_2_3();
+                }
+                return null;
+            };
+
+            const getActionColor = (action) => {
+                if (action.includes('CHIA')) return 'text-blue-600';
+                if (action.includes('NHÂN')) return 'text-green-600';
+                if (action.includes('TRỪ')) return 'text-red-600';
+                if (action.includes('HẠ')) return 'text-purple-600';
+                if (action.includes('Hoàn thành')) return 'text-amber-600';
+                return 'text-slate-800';
+            };
+
+            const getBadgeColor = (action) => {
+                if (action.includes('CHIA')) return 'bg-blue-500';
+                if (action.includes('NHÂN')) return 'bg-green-500';
+                if (action.includes('TRỪ')) return 'bg-red-500';
+                if (action.includes('HẠ')) return 'bg-purple-500';
+                if (action.includes('Hoàn thành')) return 'bg-amber-500';
+                return 'bg-slate-800';
+            };
+
+            return (
+                <div className="absolute inset-0 flex flex-col font-sans bg-slate-50 overflow-hidden">
+                    {/* 1. HEADER */}
+                    <header className="flex-none bg-white shadow-sm z-20 flex flex-col">
+                        <div className="flex justify-between items-center bg-slate-800 text-white px-3 py-1.5 md:px-4 md:py-2">
+                            <h1 className="text-sm md:text-lg font-bold tracking-wide flex items-center gap-1.5">
+                                <span className="bg-white/20 p-1 md:p-1.5 rounded-lg">
+                                    <IconLayers className="w-3 h-3 md:w-4 md:h-4"/>
+                                </span>
+                                CHIA ĐA THỨC BẰNG MÀU
+                            </h1>
+                            <div className="flex bg-slate-900 rounded-lg p-0.5">
+                                <button 
+                                    onClick={() => handleSectionChange('chia_het')}
+                                    className={`px-2 py-1 md:px-3 text-[11px] md:text-sm font-bold rounded-md transition-colors ${section === 'chia_het' ? 'bg-indigo-500 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    CHIA HẾT
+                                </button>
+                                <button 
+                                    onClick={() => handleSectionChange('chia_du')}
+                                    className={`px-2 py-1 md:px-3 text-[11px] md:text-sm font-bold rounded-md transition-colors ${section === 'chia_du' ? 'bg-orange-500 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    CHIA DƯ
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className={`px-2 py-1.5 md:px-4 md:py-2 flex gap-1.5 overflow-x-auto whitespace-nowrap hide-scrollbar ${section === 'chia_het' ? 'bg-indigo-50' : 'bg-orange-50'}`}>
+                            {EXAMPLES[section].map((ex, idx) => (
+                                <button
+                                    key={ex.id}
+                                    onClick={() => handleExampleChange(idx)}
+                                    className={`px-3 py-1 rounded-full text-[11px] md:text-sm font-bold transition-all border ${
+                                        exampleIdx === idx 
+                                        ? (section === 'chia_het' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-orange-600 text-white border-orange-600 shadow-sm') 
+                                        : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100 hover:text-slate-800'
+                                    }`}
+                                >
+                                    {ex.title}
+                                </button>
+                            ))}
+                        </div>
+                    </header>
+
+                    {/* 2. MAIN WORKSPACE */}
+                    <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+                        
+                        {/* CỘT TRÁI: BẢNG TÍNH */}
+                        <div 
+                            className="flex-[1.4] lg:flex-[5] flex items-center justify-center relative overflow-hidden p-2"
+                            style={{ backgroundImage: 'radial-gradient(#cbd5e1 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }}
+                        >
+                            <div className="w-full h-full flex items-center justify-center overflow-x-auto overflow-y-hidden">
+                                <div className="transform scale-[0.85] sm:scale-95 md:scale-100 origin-center m-auto transition-transform duration-300">
+                                    {getActiveBoard()}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* CỘT PHẢI: LỜI GIẢI & ĐIỀU KHIỂN */}
+                        <div className="flex-[1] lg:flex-[3] flex flex-col min-h-0 bg-white border-t lg:border-t-0 lg:border-l border-slate-200 shadow-[-5px_0_15px_rgba(0,0,0,0.02)]">
+                            
+                            <div className="flex-1 min-h-0 overflow-y-auto p-3 flex items-center justify-center bg-slate-50/50">
+                                <div className="w-full max-w-sm lg:max-w-md bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden flex flex-col transition-all duration-300">
+                                    <div className={`h-1.5 w-full transition-colors duration-500 ${getBadgeColor(activeExample.stepsData[step].action)}`} />
+                                    <div className="p-4 lg:p-5">
+                                        <div className="flex items-center gap-1.5 text-slate-400 font-bold uppercase text-[10px] md:text-xs tracking-wider mb-2 border-b border-slate-100 pb-2">
+                                            <IconInfo className="w-3.5 h-3.5"/> BƯỚC {step} / {totalSteps}
+                                        </div>
+                                        <h2 className={`text-lg md:text-xl font-black mb-2 tracking-tight transition-colors duration-500 ${getActionColor(activeExample.stepsData[step].action)}`}>
+                                            {activeExample.stepsData[step].action}
+                                        </h2>
+                                        <p className="text-sm md:text-base text-slate-700 leading-relaxed font-medium">
+                                            {parseText(activeExample.stepsData[step].desc)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Vùng thanh điều khiển */}
+                            <div className="flex-none bg-white border-t border-slate-100 p-2 md:p-3">
+                                <div className="w-full h-1 md:h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2 shadow-inner">
+                                    <div className={`h-full transition-all duration-500 ${section === 'chia_het' ? 'bg-indigo-600' : 'bg-orange-500'}`} style={{ width: `${(step / totalSteps) * 100}%` }}></div>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-1.5 max-w-sm lg:max-w-md mx-auto">
+                                    <button onClick={reset} className="p-2 md:p-2.5 bg-slate-100 rounded-full hover:bg-slate-200 text-slate-600 transition-colors" title="Làm lại từ đầu">
+                                        <IconRotateCcw className="w-4 h-4 md:w-5 md:h-5" />
+                                    </button>
+                                    
+                                    <div className="flex gap-1.5">
+                                        <button onClick={prevStep} disabled={step === 0} className={`flex items-center justify-center px-3 md:px-4 py-1.5 md:py-2 rounded-full font-bold transition-all shadow-sm ${step === 0 ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
+                                            <IconChevronLeft className="w-4 h-4" /> <span className="ml-0.5 text-[11px] md:text-sm hidden sm:inline">Lùi</span>
+                                        </button>
+                                        
+                                        <button onClick={togglePlay} className={`px-4 md:px-5 py-1.5 md:py-2 rounded-full shadow-md text-white font-bold flex items-center justify-center gap-1.5 transition-transform transform active:scale-95 text-[11px] md:text-sm ${isPlaying ? 'bg-red-500' : (section === 'chia_het' ? 'bg-indigo-600' : 'bg-orange-600')}`}>
+                                            {isPlaying ? <IconPause className="w-3.5 h-3.5" /> : <IconPlay className="w-3.5 h-3.5" />}
+                                            <span>{isPlaying ? "Dừng" : "Chạy"}</span>
+                                        </button>
+
+                                        <button onClick={nextStep} disabled={step === totalSteps} className={`flex items-center justify-center px-3 md:px-4 py-1.5 md:py-2 rounded-full font-bold transition-all shadow-sm ${step === totalSteps ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : (section === 'chia_het' ? 'bg-indigo-600 text-white' : 'bg-orange-600 text-white')}`}>
+                                            <span className="mr-0.5 text-[11px] md:text-sm hidden sm:inline">Tiếp</span> <IconChevronRight className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Render ứng dụng vào thẻ #root
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<StepByStepDivision />);
+    </script>
+</body>
+</html>
