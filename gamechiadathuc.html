@@ -1,0 +1,501 @@
+import React, { useState } from 'react';
+import { CheckCircle2, XCircle, ArrowRight, RefreshCcw, Star, Award, Zap, Gamepad2, Rocket, Sparkles, Heart, Trophy, Medal } from 'lucide-react';
+
+// ==========================================
+// KHO DỮ LIỆU CÂU HỎI (10 MÀN CHƠI TĂNG DẦN ĐỘ KHÓ)
+// 5 Màn Chia Hết + 5 Màn Chia Có Dư
+// ==========================================
+const LEVEL_DATA = [
+  // --- PHẦN 1: CHIA HẾT ---
+  {
+    level: 1,
+    title: "🍄 Màn 1: Khởi Động",
+    subtitle: "(Chia đơn thức - Hết)",
+    desc: "Khởi động nhẹ nhàng nè! Chia hệ số cho hệ số, chia biến cho biến nhé cậu!",
+    color: "from-sky-400 to-blue-500",
+    shadow: "shadow-blue-200",
+    problems: [
+      { q: "(4x² + 6x) : 2x", ansQ: ["2x+3", "3+2x"], ansR: ["0", ""] },
+      { q: "(9x² - 3x) : 3x", ansQ: ["3x-1", "-1+3x"], ansR: ["0", ""] },
+      { q: "(5x³ + 10x²) : 5x", ansQ: ["x²+2x", "2x+x²"], ansR: ["0", ""] },
+      { q: "(8x² + 4x) : 4x", ansQ: ["2x+1", "1+2x"], ansR: ["0", ""] },
+      { q: "(12x³ - 6x²) : 6x", ansQ: ["2x²-x", "-x+2x²"], ansR: ["0", ""] }
+    ]
+  },
+  {
+    level: 2,
+    title: "🍀 Màn 2: Nhập Môn",
+    subtitle: "(Nhị thức cơ bản - Hết)",
+    desc: "Đọc thần chú: Chia - Nhân - Trừ - Hạ! Bài này toàn dấu cộng, dễ ợt luôn nha.",
+    color: "from-teal-400 to-emerald-500",
+    shadow: "shadow-emerald-200",
+    problems: [
+      { q: "(x² + 5x + 6) : (x + 2)", ansQ: ["x+3", "3+x"], ansR: ["0", ""] },
+      { q: "(x² + 7x + 10) : (x + 5)", ansQ: ["x+2", "2+x"], ansR: ["0", ""] },
+      { q: "(x² + 6x + 8) : (x + 4)", ansQ: ["x+2", "2+x"], ansR: ["0", ""] },
+      { q: "(x² + 9x + 20) : (x + 4)", ansQ: ["x+5", "5+x"], ansR: ["0", ""] },
+      { q: "(x² + 10x + 24) : (x + 6)", ansQ: ["x+4", "4+x"], ansR: ["0", ""] }
+    ]
+  },
+  {
+    level: 3,
+    title: "⚠️ Màn 3: Bẫy Dấu Trừ",
+    subtitle: "(Có dấu trừ - Hết)",
+    desc: "Báo động đỏ! Hãy thật cẩn thận khi thực hiện phép TRỪ hai số âm nhé.",
+    color: "from-amber-400 to-orange-500",
+    shadow: "shadow-orange-200",
+    problems: [
+      { q: "(x² - 5x + 6) : (x - 2)", ansQ: ["x-3", "-3+x"], ansR: ["0", ""] },
+      { q: "(x² - x - 12) : (x - 4)", ansQ: ["x+3", "3+x"], ansR: ["0", ""] },
+      { q: "(x² + 2x - 15) : (x + 5)", ansQ: ["x-3", "-3+x"], ansR: ["0", ""] },
+      { q: "(x² - 7x + 12) : (x - 3)", ansQ: ["x-4", "-4+x"], ansR: ["0", ""] },
+      { q: "(x² - 2x - 15) : (x - 5)", ansQ: ["x+3", "3+x"], ansR: ["0", ""] }
+    ]
+  },
+  {
+    level: 4,
+    title: "💪 Màn 4: Nâng Tạ Hệ Số",
+    subtitle: "(Hệ số lớn - Hết)",
+    desc: "Hệ số của x² bây giờ không phải là 1 nữa đâu. Thử thách tính nhẩm bắt đầu!",
+    color: "from-pink-400 to-rose-500",
+    shadow: "shadow-rose-200",
+    problems: [
+      { q: "(2x² + 7x + 3) : (x + 3)", ansQ: ["2x+1", "1+2x"], ansR: ["0", ""] },
+      { q: "(3x² - 5x - 2) : (x - 2)", ansQ: ["3x+1", "1+3x"], ansR: ["0", ""] },
+      { q: "(2x² - x - 6) : (x - 2)", ansQ: ["2x+3", "3+2x"], ansR: ["0", ""] },
+      { q: "(2x² + 5x - 3) : (x + 3)", ansQ: ["2x-1", "-1+2x"], ansR: ["0", ""] },
+      { q: "(3x² + 7x + 2) : (x + 2)", ansQ: ["3x+1", "1+3x"], ansR: ["0", ""] }
+    ]
+  },
+  {
+    level: 5,
+    title: "🐉 Màn 5: Trùm Khuyết Bậc",
+    subtitle: "(Bậc 3 khuyết - Hết)",
+    desc: "Cẩn thận! Đa thức bị khuyết bậc 2 và bậc 1. Nhớ chừa chỗ trống trước khi chia nhé!",
+    color: "from-violet-400 to-purple-500",
+    shadow: "shadow-purple-200",
+    problems: [
+      { q: "(x³ - 8) : (x - 2)", ansQ: ["x²+2x+4", "4+2x+x²"], ansR: ["0", ""] },
+      { q: "(x³ + 27) : (x + 3)", ansQ: ["x²-3x+9", "9-3x+x²"], ansR: ["0", ""] },
+      { q: "(x³ - 1) : (x - 1)", ansQ: ["x²+x+1", "1+x+x²"], ansR: ["0", ""] },
+      { q: "(x³ - 64) : (x - 4)", ansQ: ["x²+4x+16", "16+4x+x²"], ansR: ["0", ""] },
+      { q: "(x³ + 125) : (x + 5)", ansQ: ["x²-5x+25", "25-5x+x²"], ansR: ["0", ""] }
+    ]
+  },
+  
+  // --- PHẦN 2: CHIA CÓ DƯ ---
+  {
+    level: 6,
+    title: "🍬 Màn 6: Khởi Động Dư",
+    subtitle: "(Chia đơn thức - Dư)",
+    desc: "Bước sang chương mới! Chia không hết thì phần dư sẽ rớt lại ở cuối cùng.",
+    color: "from-cyan-400 to-blue-500",
+    shadow: "shadow-cyan-200",
+    problems: [
+      { q: "(6x² + 4x + 5) : 2x", ansQ: ["3x+2", "2+3x"], ansR: ["5", "+5"] },
+      { q: "(9x² - 6x + 2) : 3x", ansQ: ["3x-2", "-2+3x"], ansR: ["2", "+2"] },
+      { q: "(4x³ + 8x² - 3) : 4x", ansQ: ["x²+2x", "2x+x²"], ansR: ["-3"] },
+      { q: "(8x² - 4x + 7) : 4x", ansQ: ["2x-1", "-1+2x"], ansR: ["7", "+7"] },
+      { q: "(10x³ + 5x² + 2) : 5x", ansQ: ["2x²+x", "x+2x²"], ansR: ["2", "+2"] }
+    ]
+  },
+  {
+    level: 7,
+    title: "🍀 Màn 7: Số Dư May Mắn",
+    subtitle: "(Dư số dương)",
+    desc: "Cứ chia bình thường. Dấu hiệu dừng lại là khi số dư là một con số không chứa biến x.",
+    color: "from-lime-400 to-green-500",
+    shadow: "shadow-lime-200",
+    problems: [
+      { q: "(x² + 6x + 10) : (x + 2)", ansQ: ["x+4", "4+x"], ansR: ["2", "+2"] },
+      { q: "(x² + 5x + 9) : (x + 3)", ansQ: ["x+2", "2+x"], ansR: ["3", "+3"] },
+      { q: "(x² + 8x + 16) : (x + 5)", ansQ: ["x+3", "3+x"], ansR: ["1", "+1"] },
+      { q: "(x² + 7x + 15) : (x + 3)", ansQ: ["x+4", "4+x"], ansR: ["3", "+3"] },
+      { q: "(x² + 9x + 22) : (x + 4)", ansQ: ["x+5", "5+x"], ansR: ["2", "+2"] }
+    ]
+  },
+  {
+    level: 8,
+    title: "👻 Màn 8: Bóng Ma Số Âm",
+    subtitle: "(Dư số âm)",
+    desc: "Cực kỳ chú ý bước trừ ở cuối cùng, số dư bài này sẽ mang dấu âm đấy!",
+    color: "from-orange-400 to-red-500",
+    shadow: "shadow-red-200",
+    problems: [
+      { q: "(x² + 4x - 5) : (x + 2)", ansQ: ["x+2", "2+x"], ansR: ["-9"] },
+      { q: "(x² - 3x - 6) : (x - 1)", ansQ: ["x-2", "-2+x"], ansR: ["-8"] },
+      { q: "(x² + 2x - 10) : (x + 4)", ansQ: ["x-2", "-2+x"], ansR: ["-2"] },
+      { q: "(x² - 5x - 8) : (x - 2)", ansQ: ["x-3", "-3+x"], ansR: ["-14"] },
+      { q: "(x² + 3x - 12) : (x + 5)", ansQ: ["x-2", "-2+x"], ansR: ["-2"] }
+    ]
+  },
+  {
+    level: 9,
+    title: "🔥 Màn 9: Thử Thách Kép",
+    subtitle: "(Hệ số lớn + Dư)",
+    desc: "Kết hợp giữa hệ số lớn ở đầu và số dư ở cuối. Vận dụng 200% công lực nào!",
+    color: "from-fuchsia-400 to-pink-500",
+    shadow: "shadow-fuchsia-200",
+    problems: [
+      { q: "(2x² - 3x + 5) : (x - 1)", ansQ: ["2x-1", "-1+2x"], ansR: ["4", "+4"] },
+      { q: "(3x² + 2x - 4) : (x + 1)", ansQ: ["3x-1", "-1+3x"], ansR: ["-3"] },
+      { q: "(2x² + 5x + 1) : (x + 2)", ansQ: ["2x+1", "1+2x"], ansR: ["-1"] },
+      { q: "(3x² - 4x + 6) : (x - 2)", ansQ: ["3x+2", "2+3x"], ansR: ["10", "+10"] },
+      { q: "(2x² + 7x - 5) : (x + 3)", ansQ: ["2x+1", "1+2x"], ansR: ["-8"] }
+    ]
+  },
+  {
+    level: 10,
+    title: "👑 Màn 10: Siêu Boss",
+    subtitle: "(Bậc 3 có dư)",
+    desc: "Trùm cuối xuất hiện! Biểu thức bậc 3 dài loằng ngoằng, cậu phải làm vòng lặp tận 2 lần.",
+    color: "from-slate-700 to-slate-900",
+    shadow: "shadow-slate-300",
+    problems: [
+      { q: "(x³ + 2x² - x + 5) : (x + 2)", ansQ: ["x²-1", "-1+x²"], ansR: ["7", "+7"] },
+      { q: "(x³ - x² + 2x - 3) : (x - 1)", ansQ: ["x²+2", "2+x²"], ansR: ["-1"] },
+      { q: "(x³ + 3x² + 4x + 10) : (x + 3)", ansQ: ["x²+4", "4+x²"], ansR: ["-2"] },
+      { q: "(x³ - 2x² + 3x - 5) : (x - 1)", ansQ: ["x²-x+2"], ansR: ["-3"] },
+      { q: "(x³ + 4x² + x + 8) : (x + 3)", ansQ: ["x²+x-2"], ansR: ["14", "+14"] }
+    ]
+  }
+];
+
+// Hàm chuẩn hóa chuỗi để so sánh
+const normalizeString = (str) => {
+  if (!str) return "";
+  return str.toLowerCase()
+            .replace(/\s+/g, '') // xóa khoảng trắng
+            .replace(/x\^2/g, 'x²') // linh hoạt cho hs gõ phím
+            .replace(/x\^3/g, 'x³')
+            .replace(/(^|[^0-9])1x/g, '$1x'); // biến 1x thành x
+};
+
+const InteractiveWorksheet = () => {
+  const [currentLevelIdx, setCurrentLevelIdx] = useState(0);
+  const [problemIdx, setProblemIdx] = useState(0);
+  
+  const [inputQ, setInputQ] = useState("");
+  const [inputR, setInputR] = useState("");
+  
+  const [status, setStatus] = useState("idle"); 
+  const [isFinished, setIsFinished] = useState(false);
+  
+  // Các state mới cho hệ thống điểm và bằng khen
+  const [score, setScore] = useState(0);
+  const [studentName, setStudentName] = useState("");
+
+  const levelData = LEVEL_DATA[currentLevelIdx];
+  const currentProblem = levelData?.problems[problemIdx];
+
+  const handleCheck = () => {
+    if (!inputQ) return;
+
+    const cleanInputQ = normalizeString(inputQ);
+    const cleanInputR = normalizeString(inputR) || "0";
+
+    const isQCorrect = currentProblem.ansQ.some(ans => normalizeString(ans) === cleanInputQ);
+    const isRCorrect = currentProblem.ansR.some(ans => normalizeString(ans) === cleanInputR);
+
+    if (isQCorrect && isRCorrect) {
+      setStatus("correct");
+      setScore(prev => prev + 100); // Mỗi câu đúng được 100 điểm
+    } else {
+      setStatus("incorrect");
+    }
+  };
+
+  const handleTrySimilar = () => {
+    setProblemIdx((prev) => (prev + 1) % levelData.problems.length);
+    setInputQ("");
+    setInputR("");
+    setStatus("idle");
+  };
+
+  const handleNextLevel = () => {
+    if (currentLevelIdx < LEVEL_DATA.length - 1) {
+      setCurrentLevelIdx(prev => prev + 1);
+      setProblemIdx(0);
+      setInputQ("");
+      setInputR("");
+      setStatus("idle");
+    } else {
+      setIsFinished(true);
+    }
+  };
+
+  const insertSymbol = (symbol, field) => {
+    if (field === 'Q') {
+      setInputQ(prev => prev + symbol);
+    } else {
+      setInputR(prev => prev + symbol);
+    }
+  };
+
+  // ==========================================
+  // MÀN HÌNH KẾT THÚC (BẰNG CHỨNG NHẬN)
+  // ==========================================
+  if (isFinished) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 md:p-8 font-sans bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]">
+        
+        <div className="max-w-2xl w-full">
+          {/* Khung Bằng Khen */}
+          <div className="bg-white p-8 md:p-12 rounded-[2rem] shadow-2xl relative overflow-hidden border-[12px] border-indigo-50">
+            
+            {/* Họa tiết trang trí */}
+            <div className="absolute top-0 left-0 w-32 h-32 bg-yellow-300 rounded-br-full opacity-20"></div>
+            <div className="absolute bottom-0 right-0 w-32 h-32 bg-pink-300 rounded-tl-full opacity-20"></div>
+            <div className="absolute top-10 right-10 opacity-10"><Trophy className="w-24 h-24" /></div>
+
+            <div className="text-center relative z-10">
+              <Medal className="w-20 h-20 text-yellow-400 mx-auto mb-4 drop-shadow-md" fill="#FBBF24" />
+              
+              <h2 className="text-xl md:text-2xl font-bold text-indigo-400 tracking-[0.2em] mb-2 uppercase">
+                Giấy Chứng Nhận
+              </h2>
+              <h1 className="text-3xl md:text-4xl font-black text-slate-800 mb-8 uppercase">
+                Chiến Binh Đa Thức
+              </h1>
+
+              <div className="mb-8">
+                <p className="text-slate-500 mb-2 font-medium">Được trao tặng cho bạn học sinh tài năng:</p>
+                <input 
+                  type="text" 
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                  placeholder="Nhập tên của cậu vào đây..."
+                  className="w-full max-w-sm text-center text-2xl md:text-3xl font-bold text-indigo-700 bg-indigo-50/50 border-b-4 border-indigo-200 focus:border-indigo-500 focus:outline-none py-2 px-4 rounded-t-xl transition-colors placeholder:text-indigo-200 placeholder:text-lg"
+                />
+              </div>
+
+              <p className="text-lg text-slate-600 mb-6 leading-relaxed">
+                Đã xuất sắc phá đảo <strong>10 thử thách</strong> từ Chia Hết đến Chia Dư <br/>của Đấu Trường Đa Thức với số điểm tuyệt đối:
+              </p>
+
+              <div className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-amber-100 to-yellow-100 border-2 border-yellow-300 px-8 py-4 rounded-full shadow-inner mb-10">
+                <Star className="w-8 h-8 text-yellow-500 fill-yellow-500" />
+                <span className="text-4xl font-black text-amber-600">{score}</span>
+                <span className="text-xl font-bold text-amber-500 mt-2">/ 1000 ĐIỂM</span>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button 
+                  onClick={() => {
+                    setCurrentLevelIdx(0); setProblemIdx(0); setIsFinished(false); 
+                    setStatus("idle"); setInputQ(""); setInputR(""); setScore(0);
+                  }}
+                  className="group inline-flex items-center justify-center px-8 py-4 font-bold text-slate-600 bg-slate-100 rounded-full hover:bg-slate-200 transition-all text-lg"
+                >
+                  <RefreshCcw className="w-5 h-5 mr-2 group-hover:-rotate-180 transition-transform duration-500" /> Chơi Lại Từ Đầu
+                </button>
+                {studentName && (
+                  <button 
+                    onClick={() => alert(`Chúc mừng chiến binh ${studentName}! Hãy chụp màn hình lại bằng khen này để khoe với thầy cô và bạn bè nhé!`)}
+                    className="inline-flex items-center justify-center px-8 py-4 font-bold text-white bg-indigo-600 rounded-full hover:bg-indigo-700 transition-all shadow-[0_6px_0_rgb(67,56,202)] hover:shadow-[0_3px_0_rgb(67,56,202)] hover:translate-y-1 text-lg"
+                  >
+                    <Award className="w-5 h-5 mr-2" /> Lưu Bằng Khen
+                  </button>
+                )}
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // MÀN HÌNH CHƠI GAME CHÍNH
+  // ==========================================
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4 md:p-8 font-sans flex flex-col items-center">
+      <div className="w-full max-w-3xl relative z-10">
+        
+        {/* Header HUD (Heads Up Display) */}
+        <div className="mb-6 flex flex-col sm:flex-row justify-between items-center bg-white/80 backdrop-blur-lg px-6 py-4 rounded-[2rem] shadow-md border border-white/50">
+          <h1 className="text-xl font-black text-indigo-900 flex items-center gap-2 mb-3 sm:mb-0 tracking-wide uppercase">
+            <Rocket className="w-7 h-7 text-pink-500 fill-pink-500/20"/> Đấu Trường Đa Thức
+          </h1>
+          
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+            {/* Hiển thị Điểm Số */}
+            <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border border-yellow-300 px-4 py-1.5 rounded-full flex items-center justify-center gap-2 shadow-sm transform transition-all hover:scale-105 min-w-[140px]">
+              <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+              <span className="font-black text-amber-700 text-lg">{score} ĐIỂM</span>
+            </div>
+
+            {/* Thanh tiến trình 10 Level */}
+            <div className="flex flex-wrap justify-center items-center gap-1.5 bg-slate-100/50 p-2 rounded-full border border-slate-200/50 w-full sm:w-auto">
+              {[...Array(LEVEL_DATA.length)].map((_, i) => (
+                <div 
+                  key={i} 
+                  className={`h-2.5 rounded-full transition-all duration-500 shadow-inner ${
+                    i < currentLevelIdx ? 'bg-gradient-to-r from-green-400 to-emerald-500 w-4 sm:w-5' : 
+                    i === currentLevelIdx ? 'bg-gradient-to-r from-indigo-400 to-purple-500 w-6 sm:w-8 scale-110' : 
+                    'bg-slate-200 w-4 sm:w-5'
+                  }`}
+                  title={`Màn ${i + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Thẻ Bài Tập Gamification */}
+        <div className={`bg-white rounded-[2.5rem] shadow-xl border-[6px] border-white overflow-hidden transition-all duration-500 ${levelData.shadow} shadow-2xl`}>
+          
+          {/* Level Info Banner */}
+          <div className={`bg-gradient-to-r ${levelData.color} p-6 md:p-8 text-white text-center relative overflow-hidden`}>
+            <div className="absolute top-[-20%] right-[-5%] text-white/20 transform rotate-12">
+               <Sparkles className="w-40 h-40" />
+            </div>
+            <div className="relative z-10">
+              <p className="text-white/90 font-bold uppercase tracking-widest text-sm mb-1 drop-shadow-md">
+                {levelData.subtitle}
+              </p>
+              <h2 className="text-3xl md:text-4xl font-black mb-3 drop-shadow-lg">{levelData.title}</h2>
+              <p className="text-white/95 text-base md:text-lg font-medium max-w-xl mx-auto bg-black/10 py-2 px-4 rounded-2xl backdrop-blur-sm">
+                {levelData.desc}
+              </p>
+            </div>
+          </div>
+
+          {/* Đề Bài */}
+          <div className="p-6 md:p-10 text-center bg-[#F8FAFC] border-b-2 border-slate-100 relative">
+            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-white px-6 py-1.5 rounded-full shadow-md font-bold text-slate-500 text-sm border border-slate-100 z-20">
+              NHIỆM VỤ CỦA CẬU
+            </div>
+            <div className="mt-4 text-4xl md:text-5xl font-black text-slate-800 tracking-wide py-6 px-8 bg-white rounded-3xl shadow-[inset_0_4px_15px_rgba(0,0,0,0.05)] border-2 border-slate-100 inline-block font-mono text-indigo-900">
+              {currentProblem.q}
+            </div>
+          </div>
+
+          {/* Vùng Nhập Liệu */}
+          <div className="p-6 md:p-8 bg-white">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+              
+              {/* Nhập Thương Số */}
+              <div className="md:col-span-2 relative">
+                <label className="block text-base font-black text-slate-700 mb-3 ml-2">👉 Thương số (Kết quả):</label>
+                <input 
+                  type="text" 
+                  value={inputQ}
+                  onChange={(e) => setInputQ(e.target.value)}
+                  disabled={status === 'correct'}
+                  className={`w-full text-center text-3xl font-mono p-5 rounded-3xl border-4 focus:outline-none transition-all ${
+                    status === 'correct' ? 'border-green-400 bg-green-50 text-green-700' : 
+                    status === 'incorrect' ? 'border-red-400 bg-red-50 text-red-700' : 
+                    'border-sky-100 bg-sky-50/50 text-slate-800 focus:border-sky-400 focus:bg-white shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]'
+                  }`}
+                />
+                
+                {/* Bàn phím cơ mini */}
+                {status !== 'correct' && (
+                  <div className="flex flex-wrap justify-center gap-2 mt-4">
+                    {['x²', 'x³', 'x', '+', '-'].map(sym => (
+                      <button 
+                        key={sym}
+                        onClick={() => insertSymbol(sym, 'Q')}
+                        className="bg-white text-slate-700 font-mono font-black text-lg py-2 px-5 rounded-xl border-b-4 border-slate-200 hover:bg-slate-50 hover:border-slate-300 active:border-b-0 active:translate-y-1 transition-all"
+                      >
+                        {sym}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Nhập Phần Dư */}
+              <div className="md:col-span-1 relative">
+                <label className="block text-base font-black text-slate-700 mb-3 ml-2">🎯 Phần dư:</label>
+                <input 
+                  type="text" 
+                  value={inputR}
+                  onChange={(e) => setInputR(e.target.value)}
+                  disabled={status === 'correct'}
+                  className={`w-full text-center text-3xl font-mono p-5 rounded-3xl border-4 focus:outline-none transition-all ${
+                    status === 'correct' ? 'border-green-400 bg-green-50 text-green-700' : 
+                    status === 'incorrect' ? 'border-red-400 bg-red-50 text-red-700' : 
+                    'border-amber-100 bg-amber-50/50 text-slate-800 focus:border-amber-400 focus:bg-white shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]'
+                  }`}
+                />
+                 <p className="text-sm text-slate-400 mt-4 text-center font-medium bg-slate-50 p-3 rounded-2xl">
+                  * Chia hết thì điền <strong className="text-slate-600">0</strong> hoặc để trống nha!
+                </p>
+              </div>
+
+            </div>
+
+            {/* Vùng Phản Hồi & Nút Chốt */}
+            <div className="mt-10">
+              
+              {status === 'idle' && (
+                <button 
+                  onClick={handleCheck}
+                  disabled={!inputQ}
+                  className={`w-full py-5 rounded-[2rem] font-black text-xl transition-all ${
+                    inputQ 
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-[0_8px_0_rgb(67,56,202)] hover:shadow-[0_4px_0_rgb(67,56,202)] hover:translate-y-1 active:shadow-none active:translate-y-2' 
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed border-4 border-slate-100'
+                  }`}
+                >
+                  GỬI ĐÁP ÁN! 🚀
+                </button>
+              )}
+
+              {status === 'correct' && (
+                <div className="animate-in fade-in slide-in-bottom-4 duration-500">
+                  <div className="bg-green-100/80 border-2 border-green-400 text-green-800 p-5 rounded-3xl mb-6 flex items-center justify-center gap-4 shadow-sm">
+                    <Heart className="w-10 h-10 text-pink-500 fill-pink-500 animate-pulse flex-shrink-0" />
+                    <div className="text-left">
+                      <h3 className="font-black text-xl text-green-700 flex items-center gap-2">Tuyệt cú mèo! <span className="text-amber-600 bg-amber-100 px-2 py-0.5 rounded-lg text-sm">+100 Điểm</span></h3>
+                      <p className="text-green-600 font-medium text-base">Cậu giải bài này gọn ơ luôn. Tiến lên nào!</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={handleNextLevel}
+                    className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-5 rounded-[2rem] font-black text-xl shadow-[0_8px_0_rgb(5,150,105)] hover:shadow-[0_4px_0_rgb(5,150,105)] hover:translate-y-1 active:shadow-none active:translate-y-2 flex justify-center items-center gap-3 transition-all"
+                  >
+                    {currentLevelIdx === 9 ? "XEM BẰNG CHỨNG NHẬN" : "MỞ KHÓA MÀN TIẾP THEO"} <ArrowRight className="w-6 h-6" strokeWidth={3} />
+                  </button>
+                </div>
+              )}
+
+              {status === 'incorrect' && (
+                <div className="animate-in fade-in slide-in-bottom-4 duration-500">
+                  <div className="bg-red-50 border-2 border-red-200 p-5 rounded-3xl mb-6 flex items-center justify-center gap-4">
+                    <div className="text-4xl">🥺</div>
+                    <div className="text-left">
+                      <h3 className="font-black text-xl text-red-600">Ôi tiếc quá! Sai một xíu thôi...</h3>
+                      <p className="text-red-500 font-medium text-base">Soi kỹ lại dấu (+/-) hoặc check lại phần hạ số nha chiến binh.</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <button 
+                      onClick={() => setStatus('idle')}
+                      className="flex-1 bg-white border-4 border-slate-200 hover:border-slate-300 text-slate-600 py-4 rounded-[2rem] font-black text-lg transition-all active:translate-y-1"
+                    >
+                      ✏️ Tớ muốn sửa lại
+                    </button>
+                    <button 
+                      onClick={handleTrySimilar}
+                      className="flex-1 bg-gradient-to-r from-orange-400 to-amber-500 text-white py-4 rounded-[2rem] font-black text-lg shadow-[0_6px_0_rgb(217,119,6)] hover:shadow-[0_3px_0_rgb(217,119,6)] hover:translate-y-1 active:shadow-none active:translate-y-2 flex justify-center items-center gap-2 transition-all"
+                    >
+                      <RefreshCcw className="w-5 h-5" strokeWidth={3} /> Đổi cho tớ câu khác
+                    </button>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default InteractiveWorksheet;
